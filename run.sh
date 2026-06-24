@@ -24,8 +24,8 @@ pip install -r backend/requirements.txt
 # 3. FastAPI 백엔드 서버 구동
 echo "[3/3] FastAPI 백엔드 서버 구동 중..."
 echo "서버가 구동되면 브라우저에서 아래 주소로 접속해 주세요:"
-echo "👉 http://127.0.0.1:8001/stockanalysis"
+echo "👉 http://localhost:8001/stock"
 echo "==================================="
 
 # Run uvicorn
-python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 --reload
+python3 -m uvicorn backend.main:app --host localhost --port 8001 --reload

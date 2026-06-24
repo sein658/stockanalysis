@@ -40,7 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Common TICKER Names cache for instant rendering and autocomplete fallback
 TICKER_NAMES = {
     "AAPL": "Apple Inc.",
     "MSFT": "Microsoft Corporation",
@@ -50,6 +49,21 @@ TICKER_NAMES = {
     "GOOGL": "Alphabet Inc.",
     "META": "Meta Platforms, Inc.",
     "NFLX": "Netflix, Inc.",
+    "AMD": "Advanced Micro Devices, Inc.",
+    "INTC": "Intel Corporation",
+    "QCOM": "Qualcomm Incorporated",
+    "AVGO": "Broadcom Inc.",
+    "ASML": "ASML Holding N.V.",
+    "JPM": "JPMorgan Chase & Co.",
+    "V": "Visa Inc.",
+    "MA": "Mastercard Incorporated",
+    "LLY": "Eli Lilly and Company",
+    "NVO": "Novo Nordisk A/S",
+    "BRK-B": "Berkshire Hathaway Inc.",
+    "COIN": "Coinbase Global, Inc.",
+    "MSTR": "MicroStrategy Incorporated",
+    "DIS": "The Walt Disney Company",
+    "NKE": "NIKE, Inc.",
     "005930.KS": "삼성전자",
     "000660.KS": "SK하이닉스",
     "005935.KS": "삼성전자우",
@@ -62,6 +76,18 @@ TICKER_NAMES = {
     "207940.KS": "삼성바이오로직스",
     "068270.KS": "셀트리온",
     "005490.KS": "POSCO홀딩스",
+    "012330.KS": "현대모비스",
+    "066570.KS": "LG전자",
+    "000810.KS": "삼성화재",
+    "032830.KS": "삼성생명",
+    "003550.KS": "LG",
+    "017670.KS": "SK텔레콤",
+    "018260.KS": "삼성SDS",
+    "009150.KS": "삼성전기",
+    "010950.KS": "S-Oil",
+    "015760.KS": "한국전력공사",
+    "000100.KS": "유한양행",
+    "000080.KS": "하이트진로",
     "^KS11": "코스피 지수 (KOSPI)",
     "^KQ11": "코스닥 지수 (KOSDAQ)",
     "^GSPC": "S&P 500 지수",
@@ -136,7 +162,7 @@ def get_stock_info_internal(ticker: str):
             change_percent = (change / prev_close) * 100
         else:
             # Fallback to history if fast_info missing price
-            hist = t.history(period="2d")
+            hist = t.history(period="2d").dropna(subset=["Close"])
             if not hist.empty:
                 current_price = float(hist["Close"].iloc[-1])
                 if len(hist) > 1:
@@ -245,13 +271,18 @@ def get_market_overview():
     for name, ticker in indices.items():
         try:
             t = yf.Ticker(ticker)
-            # Retrieve last 5 days
-            hist = t.history(period="5d")
-            if hist.empty:
-                continue
-                
-            last_close = hist["Close"].iloc[-1]
-            prev_close = hist["Close"].iloc[-2]
+            
+            fi = t.fast_info
+            last_close = fi.get("lastPrice")
+            prev_close = fi.get("previousClose")
+            
+            # Fallback if fast_info doesn't yield valid values
+            if last_close is None or prev_close is None or math.isnan(last_close) or math.isnan(prev_close):
+                hist = t.history(period="5d").dropna(subset=["Close"])
+                if hist.empty:
+                    continue
+                last_close = hist["Close"].iloc[-1]
+                prev_close = hist["Close"].iloc[-2] if len(hist) > 1 else last_close
             
             # Avoid nan operations
             last_close_val = sanitize_float(last_close)
@@ -328,6 +359,90 @@ def get_multiple_stocks_info(tickers: str = Query(..., description="Comma separa
         result.append(get_stock_info_internal(ticker))
     return result
 
+def analyze_sentiment_mock(title: str, summary: str) -> str:
+    text = (title + " " + summary).lower()
+    pos_words = ["gain", "rise", "jump", "surge", "up", "bull", "growth", "profit", "호재", "상승", "성장", "최고", "부합", "완화", "매수", "확대"]
+    neg_words = ["drop", "fall", "slide", "plunge", "slump", "down", "bear", "loss", "decline", "악재", "하락", "손실", "최저", "우려", "부담", "리스크"]
+    
+    pos_score = sum(1 for word in pos_words if word in text)
+    neg_score = sum(1 for word in neg_words if word in text)
+    
+    if pos_score > neg_score:
+        return "pos"
+    elif neg_score > pos_score:
+        return "neg"
+    else:
+        return "neu"
+
+def format_yfinance_news(raw_news) -> List[dict]:
+    news_list = []
+    if not raw_news:
+        return news_list
+    for item in raw_news:
+        content = item.get("content", item)
+        if not content:
+            continue
+            
+        title = content.get("title")
+        if not title:
+            continue
+            
+        summary = content.get("summary") or content.get("description") or ""
+        pub_date = content.get("pubDate") or content.get("providerPublishTime") or ""
+        if isinstance(pub_date, int):
+            pub_date = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(pub_date))
+            
+        publisher = content.get("provider", {}).get("displayName") if isinstance(content.get("provider"), dict) else content.get("publisher") or "Yahoo Finance"
+        
+        link = ""
+        canonical = content.get("canonicalUrl")
+        if isinstance(canonical, dict):
+            link = canonical.get("url")
+        elif isinstance(canonical, str):
+            link = canonical
+            
+        if not link:
+            clickthrough = content.get("clickThroughUrl")
+            if isinstance(clickthrough, dict):
+                link = clickthrough.get("url")
+            elif isinstance(clickthrough, str):
+                link = clickthrough
+        
+        if not link:
+            link = content.get("link") or ""
+            
+        sentiment = analyze_sentiment_mock(title, summary)
+        
+        news_list.append({
+            "title": title,
+            "summary": summary,
+            "pubDate": str(pub_date),
+            "publisher": publisher,
+            "link": link,
+            "sentiment": sentiment
+        })
+    return news_list
+
+@app.get("/api/stock/{ticker}/news")
+def get_stock_news(ticker: str):
+    try:
+        t = yf.Ticker(ticker)
+        raw_news = t.news
+        return format_yfinance_news(raw_news)
+    except Exception as e:
+        logger.error(f"Error fetching news for {ticker}: {e}")
+        return []
+
+@app.get("/api/news")
+def get_global_news():
+    try:
+        t = yf.Ticker("^GSPC")
+        raw_news = t.news
+        return format_yfinance_news(raw_news)
+    except Exception as e:
+        logger.error(f"Error fetching global news: {e}")
+        return []
+
 @app.get("/api/stock/{ticker}/history")
 def get_stock_history(ticker: str, period: str = "1y", interval: str = "1d"):
     try:
@@ -335,6 +450,11 @@ def get_stock_history(ticker: str, period: str = "1y", interval: str = "1d"):
         df = t.history(period=period, interval=interval)
         if df.empty:
             raise HTTPException(status_code=404, detail="No historical data found")
+            
+        # Drop rows with NaN in OHLC to prevent technical indicators crash
+        df = df.dropna(subset=["Open", "High", "Low", "Close"])
+        if df.empty:
+            raise HTTPException(status_code=404, detail="No historical data found after removing empty rows")
             
         df.index = pd.to_datetime(df.index)
         
@@ -397,7 +517,7 @@ def compare_stocks(tickers: str = Query(..., description="Comma separated list o
     for ticker in ticker_list:
         try:
             t = yf.Ticker(ticker)
-            hist = t.history(period="1y")
+            hist = t.history(period="1y").dropna(subset=["Close"])
             if hist.empty:
                 continue
                 
@@ -430,11 +550,15 @@ def compare_stocks(tickers: str = Query(..., description="Comma separated list o
 
 @app.get("/")
 def root_redirect():
-    return RedirectResponse(url="/stockanalysis/")
+    return RedirectResponse(url="/stock/")
 
 # Serve Frontend static files
 frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
 if os.path.exists(frontend_path):
-    app.mount("/stockanalysis", StaticFiles(directory=frontend_path, html=True), name="frontend")
+    app.mount("/stock", StaticFiles(directory=frontend_path, html=True), name="frontend")
 else:
     logger.warning(f"Frontend path {frontend_path} does not exist. Static files won't be served.")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="localhost", port=8001, reload=True)

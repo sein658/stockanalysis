@@ -35,4 +35,4 @@ stock-analyzer/
 ```
 
 서버 구동 후 브라우저에서 아래 주소로 접속해 주세요:
-👉 **[http://127.0.0.1:8001/stockanalysis](http://127.0.0.1:8001/stockanalysis)**
+👉 **[localhost:8001/stock](http://localhost:8001/stock)**

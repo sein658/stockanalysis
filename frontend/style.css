@@ -119,6 +119,37 @@ header {
   -webkit-text-fill-color: transparent;
 }
 
+.lang-select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 0.45rem 0.8rem;
+  font-family: var(--font-sans);
+  font-size: 0.825rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.lang-select:focus, .lang-select:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-tertiary);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+[data-theme="light"] .lang-select {
+  background: rgba(15, 23, 42, 0.03);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: #0f172a;
+}
+
+[data-theme="light"] .lang-select:hover, [data-theme="light"] .lang-select:focus {
+  background: #ffffff;
+  border-color: var(--accent-primary);
+}
+
 .search-container {
   position: relative;
   width: 350px;
@@ -765,6 +796,124 @@ footer {
   margin-top: 2rem;
 }
 
+/* Market Status Section */
+.market-status-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  padding: 1rem;
+  border-radius: 18px;
+  margin-bottom: 0px;
+}
+
+@media (max-width: 768px) {
+  .market-status-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.market-status-badge-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid var(--border-color);
+  padding: 1.1rem;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition-smooth);
+}
+
+.market-status-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.market-country-badge {
+  font-weight: 750;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+}
+
+.market-country-badge.kr {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent-primary);
+}
+
+.market-country-badge.us {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--color-positive);
+}
+
+.market-title {
+  font-size: 0.9rem;
+  font-weight: 650;
+  flex: 1;
+}
+
+.market-current-phase-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  transition: var(--transition-smooth);
+}
+
+.market-phases-timeline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.phase-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.3rem;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  text-align: center;
+  font-size: 0.725rem;
+  transition: var(--transition-smooth);
+}
+
+.phase-step .phase-name {
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+  color: var(--text-secondary);
+}
+
+.phase-step .phase-time {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+/* Active phase style */
+.phase-step.active {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.15);
+}
+
+.phase-step.active.us-active {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: var(--color-positive);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+}
+
+.phase-step.active .phase-name {
+  color: var(--text-primary);
+}
+
+.phase-step.active .phase-time {
+  color: var(--text-secondary);
+}
+
 /* ==========================================================================
    Light Theme System
    ========================================================================== */
@@ -863,6 +1012,11 @@ footer {
 
 [data-theme="light"] .portfolio-item {
   background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+[data-theme="light"] .market-status-badge-card {
+  background: rgba(15, 23, 42, 0.02);
   border-color: rgba(15, 23, 42, 0.06);
 }
 
