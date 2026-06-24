@@ -14,6 +14,7 @@ from typing import List, Optional
 import os
 import math
 
+
 def sanitize_float(val, precision=2) -> Optional[float]:
     if val is None:
         return None
@@ -22,8 +23,9 @@ def sanitize_float(val, precision=2) -> Optional[float]:
         if math.isnan(f_val) or math.isinf(f_val):
             return None
         return round(f_val, precision)
-    except:
+    except BaseException:
         return None
+
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -100,27 +102,28 @@ TICKER_NAMES = {
 info_cache = {}
 market_cache = {"data": None, "timestamp": 0}
 
+
 def search_stock_internal(q: str):
     """Internal helper to query Yahoo Finance autocomplete."""
     encoded_query = urllib.parse.quote(q)
     # Using query2 as it is more stable and less rate limited
     url = f"https://query2.finance.yahoo.com/v1/finance/search?q={encoded_query}&lang=ko-KR&region=KR"
-    
+
     req = urllib.request.Request(
-        url, 
-        headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
-    )
-    
+        url,
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'})
+
     with urllib.request.urlopen(req) as response:
         data = json.loads(response.read().decode('utf-8'))
-        
+
     quotes = data.get("quotes", [])
     results = []
     for quote in quotes:
         quote_type = quote.get("quoteType", "")
         if quote_type not in ["EQUITY", "ETF"]:
             continue
-            
+
         results.append({
             "ticker": quote.get("symbol"),
             "name": quote.get("longname") or quote.get("shortname") or quote.get("symbol"),
@@ -131,21 +134,22 @@ def search_stock_internal(q: str):
         })
     return results
 
+
 def get_stock_info_internal(ticker: str):
     """Optimized internal helper to fetch stock details using cache and fast_info."""
     ticker = ticker.strip().upper()
     now = time.time()
-    
+
     # 1. Return cache if valid (10 minutes cache)
     if ticker in info_cache and (now - info_cache[ticker]["timestamp"] < 600):
         return info_cache[ticker]["data"]
-        
+
     t = yf.Ticker(ticker)
-    
+
     try:
         # Use fast_info (takes < 0.8s) for all numeric parameters
         fast_info = t.fast_info
-        
+
         current_price = fast_info.get("lastPrice")
         prev_close = fast_info.get("previousClose")
         market_cap = fast_info.get("marketCap")
@@ -153,7 +157,7 @@ def get_stock_info_internal(ticker: str):
         high = fast_info.get("yearHigh")
         low = fast_info.get("yearLow")
         volume = fast_info.get("lastVolume")
-        
+
         # Calculate daily change
         change = 0.0
         change_percent = 0.0
@@ -169,7 +173,7 @@ def get_stock_info_internal(ticker: str):
                     prev_close = float(hist["Close"].iloc[-2])
                     change = current_price - prev_close
                     change_percent = (change / prev_close) * 100
-            
+
         # Get Company Name
         name = TICKER_NAMES.get(ticker)
         if not name:
@@ -180,16 +184,17 @@ def get_stock_info_internal(ticker: str):
                     name = search_res[0]["name"]
                 else:
                     name = ticker
-            except:
+            except BaseException:
                 name = ticker
-                
+
         # Optional details: PE, PB, Dividend, Summary (use defaults)
         pe_ratio = None
         pb_ratio = None
         div_yield = None
         summary = "No description available."
-        
-        # Try fetching full info lazily (if it fails, we fall back to defaults gracefully)
+
+        # Try fetching full info lazily (if it fails, we fall back to defaults
+        # gracefully)
         try:
             info = t.info
             name = info.get("longName") or info.get("shortName") or name
@@ -203,7 +208,8 @@ def get_stock_info_internal(ticker: str):
             low = info.get("fiftyTwoWeekLow") or low
             volume = info.get("volume") or volume
         except Exception as e:
-            logger.warning(f"Could not load full scraping info for {ticker} (using fast_info fallback): {e}")
+            logger.warning(
+                f"Could not load full scraping info for {ticker} (using fast_info fallback): {e}")
 
         # Format output
         res_data = {
@@ -219,19 +225,21 @@ def get_stock_info_internal(ticker: str):
             "dividendYield": sanitize_float(div_yield),
             "fiftyTwoWeekHigh": sanitize_float(high),
             "fiftyTwoWeekLow": sanitize_float(low),
-            "volume": int(volume) if volume and not math.isnan(float(volume)) and not math.isinf(float(volume)) else 0,
+            "volume": int(volume) if volume and not math.isnan(
+                float(volume)) and not math.isinf(
+                float(volume)) else 0,
             "summary": summary,
-            "error": False
-        }
-        
+            "error": False}
+
         info_cache[ticker] = {
             "data": res_data,
             "timestamp": now
         }
         return res_data
-        
+
     except Exception as e:
-        logger.error(f"Complete failure in get_stock_info_internal for {ticker}: {e}")
+        logger.error(
+            f"Complete failure in get_stock_info_internal for {ticker}: {e}")
         # Return structured mock fallback instead of crashing or returning error=True
         # This keeps the UI rendering the item instead of hiding it!
         return {
@@ -252,6 +260,7 @@ def get_stock_info_internal(ticker: str):
             "error": True
         }
 
+
 @app.get("/api/market-overview")
 def get_market_overview():
     now = time.time()
@@ -271,23 +280,25 @@ def get_market_overview():
     for name, ticker in indices.items():
         try:
             t = yf.Ticker(ticker)
-            
+
             fi = t.fast_info
             last_close = fi.get("lastPrice")
             prev_close = fi.get("previousClose")
-            
+
             # Fallback if fast_info doesn't yield valid values
-            if last_close is None or prev_close is None or math.isnan(last_close) or math.isnan(prev_close):
+            if last_close is None or prev_close is None or math.isnan(
+                    last_close) or math.isnan(prev_close):
                 hist = t.history(period="5d").dropna(subset=["Close"])
                 if hist.empty:
                     continue
                 last_close = hist["Close"].iloc[-1]
-                prev_close = hist["Close"].iloc[-2] if len(hist) > 1 else last_close
-            
+                prev_close = hist["Close"].iloc[-2] if len(
+                    hist) > 1 else last_close
+
             # Avoid nan operations
             last_close_val = sanitize_float(last_close)
             prev_close_val = sanitize_float(prev_close)
-            
+
             if last_close_val is not None and prev_close_val is not None and prev_close_val != 0:
                 change = last_close_val - prev_close_val
                 change_percent = (change / prev_close_val) * 100
@@ -314,10 +325,11 @@ def get_market_overview():
                 "changePercent": 0.0,
                 "error": True
             })
-            
+
     market_cache["data"] = result
     market_cache["timestamp"] = now
     return result
+
 
 @app.get("/api/search")
 def search_stock(q: str = Query(..., min_length=1)):
@@ -325,8 +337,9 @@ def search_stock(q: str = Query(..., min_length=1)):
     try:
         return search_stock_internal(q)
     except Exception as e:
-        logger.error(f"Error during remote search: {e}. Falling back to local search.")
-        
+        logger.error(
+            f"Error during remote search: {e}. Falling back to local search.")
+
         # Local search fallback in TICKER_NAMES dictionary
         results = []
         q_upper = q.upper()
@@ -343,36 +356,73 @@ def search_stock(q: str = Query(..., min_length=1)):
                 })
         return results
 
+
 @app.get("/api/stock/{ticker}/info")
 def get_stock_info(ticker: str):
     return get_stock_info_internal(ticker)
 
+
 @app.get("/api/stocks/info")
-def get_multiple_stocks_info(tickers: str = Query(..., description="Comma separated list of tickers")):
+def get_multiple_stocks_info(tickers: str = Query(...,
+                                                  description="Comma separated list of tickers")):
     """Batch API to fetch basic stats for multiple symbols in a single call."""
     ticker_list = [t.strip().upper() for t in tickers.split(",") if t.strip()]
     if not ticker_list:
         return []
-        
+
     result = []
     for ticker in ticker_list:
         result.append(get_stock_info_internal(ticker))
     return result
 
+
 def analyze_sentiment_mock(title: str, summary: str) -> str:
     text = (title + " " + summary).lower()
-    pos_words = ["gain", "rise", "jump", "surge", "up", "bull", "growth", "profit", "호재", "상승", "성장", "최고", "부합", "완화", "매수", "확대"]
-    neg_words = ["drop", "fall", "slide", "plunge", "slump", "down", "bear", "loss", "decline", "악재", "하락", "손실", "최저", "우려", "부담", "리스크"]
-    
+    pos_words = [
+        "gain",
+        "rise",
+        "jump",
+        "surge",
+        "up",
+        "bull",
+        "growth",
+        "profit",
+        "호재",
+        "상승",
+        "성장",
+        "최고",
+        "부합",
+        "완화",
+        "매수",
+        "확대"]
+    neg_words = [
+        "drop",
+        "fall",
+        "slide",
+        "plunge",
+        "slump",
+        "down",
+        "bear",
+        "loss",
+        "decline",
+        "악재",
+        "하락",
+        "손실",
+        "최저",
+        "우려",
+        "부담",
+        "리스크"]
+
     pos_score = sum(1 for word in pos_words if word in text)
     neg_score = sum(1 for word in neg_words if word in text)
-    
+
     if pos_score > neg_score:
         return "pos"
     elif neg_score > pos_score:
         return "neg"
     else:
         return "neu"
+
 
 def format_yfinance_news(raw_news) -> List[dict]:
     news_list = []
@@ -382,37 +432,41 @@ def format_yfinance_news(raw_news) -> List[dict]:
         content = item.get("content", item)
         if not content:
             continue
-            
+
         title = content.get("title")
         if not title:
             continue
-            
+
         summary = content.get("summary") or content.get("description") or ""
-        pub_date = content.get("pubDate") or content.get("providerPublishTime") or ""
+        pub_date = content.get("pubDate") or content.get(
+            "providerPublishTime") or ""
         if isinstance(pub_date, int):
-            pub_date = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(pub_date))
-            
-        publisher = content.get("provider", {}).get("displayName") if isinstance(content.get("provider"), dict) else content.get("publisher") or "Yahoo Finance"
-        
+            pub_date = time.strftime(
+                '%Y-%m-%d %H:%M:%S',
+                time.localtime(pub_date))
+
+        publisher = content.get("provider", {}).get("displayName") if isinstance(
+            content.get("provider"), dict) else content.get("publisher") or "Yahoo Finance"
+
         link = ""
         canonical = content.get("canonicalUrl")
         if isinstance(canonical, dict):
             link = canonical.get("url")
         elif isinstance(canonical, str):
             link = canonical
-            
+
         if not link:
             clickthrough = content.get("clickThroughUrl")
             if isinstance(clickthrough, dict):
                 link = clickthrough.get("url")
             elif isinstance(clickthrough, str):
                 link = clickthrough
-        
+
         if not link:
             link = content.get("link") or ""
-            
+
         sentiment = analyze_sentiment_mock(title, summary)
-        
+
         news_list.append({
             "title": title,
             "summary": summary,
@@ -422,6 +476,7 @@ def format_yfinance_news(raw_news) -> List[dict]:
             "sentiment": sentiment
         })
     return news_list
+
 
 @app.get("/api/stock/{ticker}/news")
 def get_stock_news(ticker: str):
@@ -433,6 +488,7 @@ def get_stock_news(ticker: str):
         logger.error(f"Error fetching news for {ticker}: {e}")
         return []
 
+
 @app.get("/api/news")
 def get_global_news():
     try:
@@ -443,45 +499,50 @@ def get_global_news():
         logger.error(f"Error fetching global news: {e}")
         return []
 
+
 @app.get("/api/stock/{ticker}/history")
 def get_stock_history(ticker: str, period: str = "1y", interval: str = "1d"):
     try:
         t = yf.Ticker(ticker)
         df = t.history(period=period, interval=interval)
         if df.empty:
-            raise HTTPException(status_code=404, detail="No historical data found")
-            
+            raise HTTPException(
+                status_code=404,
+                detail="No historical data found")
+
         # Drop rows with NaN in OHLC to prevent technical indicators crash
         df = df.dropna(subset=["Open", "High", "Low", "Close"])
         if df.empty:
-            raise HTTPException(status_code=404, detail="No historical data found after removing empty rows")
-            
+            raise HTTPException(
+                status_code=404,
+                detail="No historical data found after removing empty rows")
+
         df.index = pd.to_datetime(df.index)
-        
+
         # Technical Indicators calculation
         df["MA5"] = df["Close"].rolling(window=5).mean()
         df["MA20"] = df["Close"].rolling(window=20).mean()
         df["MA60"] = df["Close"].rolling(window=60).mean()
         df["MA120"] = df["Close"].rolling(window=120).mean()
-        
+
         delta = df["Close"].diff()
         gain = delta.clip(lower=0)
         loss = -delta.clip(upper=0)
-        
+
         avg_gain = gain.ewm(com=13, adjust=False).mean()
         avg_loss = loss.ewm(com=13, adjust=False).mean()
-        
+
         rs = avg_gain / np.where(avg_loss == 0, 0.00001, avg_loss)
         df["RSI"] = 100 - (100 / (1 + rs))
-        
+
         ema12 = df["Close"].ewm(span=12, adjust=False).mean()
         ema26 = df["Close"].ewm(span=26, adjust=False).mean()
         df["MACD"] = ema12 - ema26
         df["MACD_Signal"] = df["MACD"].ewm(span=9, adjust=False).mean()
         df["MACD_Hist"] = df["MACD"] - df["MACD_Signal"]
-        
+
         df = df.replace({np.nan: None})
-        
+
         history_list = []
         for index, row in df.iterrows():
             date_str = index.strftime("%Y-%m-%d")
@@ -501,18 +562,20 @@ def get_stock_history(ticker: str, period: str = "1y", interval: str = "1d"):
                 "macdSignal": float(row["MACD_Signal"]) if row["MACD_Signal"] is not None else None,
                 "macdHist": float(row["MACD_Hist"]) if row["MACD_Hist"] is not None else None,
             })
-            
+
         return history_list
     except Exception as e:
         logger.error(f"Error fetching history for {ticker}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/api/compare")
-def compare_stocks(tickers: str = Query(..., description="Comma separated list of tickers")):
+def compare_stocks(tickers: str = Query(...,
+                                        description="Comma separated list of tickers")):
     ticker_list = [t.strip().upper() for t in tickers.split(",") if t.strip()]
     if not ticker_list:
         return {}
-        
+
     result = {}
     for ticker in ticker_list:
         try:
@@ -520,10 +583,10 @@ def compare_stocks(tickers: str = Query(..., description="Comma separated list o
             hist = t.history(period="1y").dropna(subset=["Close"])
             if hist.empty:
                 continue
-                
+
             info = get_stock_info_internal(ticker)
             initial_price = float(hist["Close"].iloc[0])
-            
+
             comparison_data = []
             for index, row in hist.iterrows():
                 close = float(row["Close"])
@@ -533,7 +596,7 @@ def compare_stocks(tickers: str = Query(..., description="Comma separated list o
                     "value": round(pct_return, 2),
                     "price": round(close, 2)
                 })
-                
+
             result[ticker] = {
                 "name": info.get("name"),
                 "currency": info.get("currency", "USD"),
@@ -545,19 +608,30 @@ def compare_stocks(tickers: str = Query(..., description="Comma separated list o
             }
         except Exception as e:
             logger.error(f"Error comparing stock {ticker}: {e}")
-            
+
     return result
+
 
 @app.get("/")
 def root_redirect():
     return RedirectResponse(url="/stock/")
 
+
 # Serve Frontend static files
-frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))
+frontend_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        "../frontend"))
 if os.path.exists(frontend_path):
-    app.mount("/stock", StaticFiles(directory=frontend_path, html=True), name="frontend")
+    app.mount(
+        "/stock",
+        StaticFiles(
+            directory=frontend_path,
+            html=True),
+        name="frontend")
 else:
-    logger.warning(f"Frontend path {frontend_path} does not exist. Static files won't be served.")
+    logger.warning(
+        f"Frontend path {frontend_path} does not exist. Static files won't be served.")
 
 if __name__ == "__main__":
     import uvicorn

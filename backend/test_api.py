@@ -2,6 +2,7 @@ import unittest
 from fastapi.testclient import TestClient
 from main import app
 
+
 class TestStockAnalyzerAPI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -68,6 +69,7 @@ class TestStockAnalyzerAPI(unittest.TestCase):
         self.assertEqual(data[0]["ticker"], "AAPL")
         self.assertEqual(data[1]["ticker"], "005930.KS")
         self.assertIn("currentPrice", data[0])
+
 
 if __name__ == "__main__":
     unittest.main()

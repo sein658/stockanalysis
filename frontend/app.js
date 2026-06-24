@@ -1,3 +1,4 @@
+/* global LightweightCharts, translations */
 let state = {
     activeStock: null,
     activePeriod: '1y',
@@ -759,7 +760,7 @@ function renderWatchlistFromCache(flashIdx = -1, isUp = true) {
     const items = watchlistContainer.children;
     if (items.length !== state.watchlistCachedData.length) {
         watchlistContainer.innerHTML = '';
-        state.watchlistCachedData.forEach((info, idx) => {
+        state.watchlistCachedData.forEach((info) => {
             if (info.error && !info.currentPrice) {
                 info.currentPrice = 0.0;
             }
