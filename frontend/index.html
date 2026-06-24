@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>stockanalysis</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- TradingView Lightweight Charts Local -->
+    <script src="lightweight-charts.js"></script>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#6366f1" />
+                        <stop offset="100%" stop-color="#00f2fe" />
+                    </linearGradient>
+                </defs>
+                <path d="M3 3V21H21" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18.5 7.5L13.5 12.5L10.5 9.5L5.5 14.5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="logo-text"><span class="logo-light">stock</span><span class="logo-bold">analysis</span></span>
+        </div>
+        <div class="header-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+            <button id="btn-theme-toggle" class="btn-icon" title="테마 변경">
+                <svg id="theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+            </button>
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" class="search-input" id="search-input" placeholder="종목명 또는 티커 검색 (예: 삼성전자, AAPL)..." autocomplete="off">
+                <div class="search-results" id="search-results"></div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Side: Main Analytics & Overview -->
+        <div class="left-panel">
+            <!-- Market Indices Overview -->
+            <section class="indices-container" id="market-overview">
+                <!-- Rendered dynamically -->
+                <div class="index-card">
+                    <div class="index-name">KOSPI</div>
+                    <div class="index-price">로딩 중...</div>
+                </div>
+                <div class="index-card">
+                    <div class="index-name">KOSDAQ</div>
+                    <div class="index-price">로딩 중...</div>
+                </div>
+                <div class="index-card">
+                    <div class="index-name">S&P 500</div>
+                    <div class="index-price">로딩 중...</div>
+                </div>
+                <div class="index-card">
+                    <div class="index-name">NASDAQ</div>
+                    <div class="index-price">로딩 중...</div>
+                </div>
+            </section>
+
+            <!-- Chart & Details Card -->
+            <section class="glass-card chart-container-wrapper">
+                <div class="loading-indicator" id="chart-loader">
+                    <div class="spinner"></div>
+                </div>
+                
+                <div class="stock-header">
+                    <div class="stock-title-area">
+                        <h2 id="active-name">주식을 검색하세요</h2>
+                        <div>
+                            <span id="active-ticker" class="stock-ticker-badge">---</span>
+                            <button id="btn-watchlist-toggle" class="btn-icon" style="display:inline-flex; border-radius:8px; width:auto; padding:0.2rem 0.6rem; font-size:0.75rem; gap:4px; margin-left:8px; vertical-align:middle;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                                관심 등록
+                            </button>
+                        </div>
+                    </div>
+                    <div class="stock-price-area">
+                        <div class="stock-price" id="active-price">-</div>
+                        <div class="stock-change" id="active-change">-</div>
+                    </div>
+                </div>
+
+                <div class="chart-header">
+                    <div class="timeframe-selector">
+                        <button class="timeframe-btn" data-period="1mo">1M</button>
+                        <button class="timeframe-btn" data-period="3mo">3M</button>
+                        <button class="timeframe-btn active" data-period="1y">1Y</button>
+                        <button class="timeframe-btn" data-period="5y">5Y</button>
+                    </div>
+                    <button class="btn-primary" id="btn-compare-open">종목 비교하기</button>
+                </div>
+
+                <div class="chart-div" id="stock-chart"></div>
+
+                <!-- Key Metrics Grid -->
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">시가총액</div>
+                        <div class="metric-value" id="metric-market-cap">-</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">PER (주가수익비율)</div>
+                        <div class="metric-value" id="metric-pe">-</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">PBR (주가순자산비율)</div>
+                        <div class="metric-value" id="metric-pb">-</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">배당수익률</div>
+                        <div class="metric-value" id="metric-dividend">-</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">52주 최고/최저</div>
+                        <div class="metric-value" id="metric-52week" style="font-size:0.95rem;">-</div>
+                    </div>
+                </div>
+
+                <!-- Stock Summary -->
+                <div style="margin-top: 1.5rem;">
+                    <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">기업 개요</h3>
+                    <p id="active-summary" style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; max-height: 120px; overflow-y: auto;">
+                        검색한 기업의 개요가 여기에 표시됩니다.
+                    </p>
+                </div>
+            </section>
+
+            <!-- News & Sentiment -->
+            <section class="glass-card news-section">
+                <h3>주요 뉴스 & 인공지능 분석</h3>
+                <div class="news-grid" id="news-container">
+                    <!-- News items loaded dynamically -->
+                </div>
+            </section>
+        </div>
+
+        <!-- Right Side: Portfolio & Watchlist -->
+        <div class="right-panel">
+            <!-- Watchlist Card -->
+            <section class="glass-card">
+                <div class="sidebar-header">
+                    <h3>관심 종목 (Watchlist)</h3>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+                <div class="watchlist-items" id="watchlist-container">
+                    <!-- Rendered dynamically -->
+                </div>
+            </section>
+
+            <!-- Portfolio Tracker Card -->
+            <section class="glass-card">
+                <div class="sidebar-header">
+                    <h3>내 포트폴리오</h3>
+                    <button class="btn-icon" id="btn-portfolio-add" title="포트폴리오 자산 추가">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </button>
+                </div>
+                
+                <div class="portfolio-summary">
+                    <div>
+                        <div class="portfolio-total-label">총 자산 평가액</div>
+                        <div class="portfolio-total-value" id="portfolio-total-value">$0.00</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="portfolio-total-label">총 수익률</div>
+                        <div class="portfolio-return" id="portfolio-total-return">0%</div>
+                    </div>
+                </div>
+
+                <div class="portfolio-list" id="portfolio-container">
+                    <!-- Rendered dynamically -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2026 copyrights stockanalysis
+    </footer>
+
+    <!-- Dialog: Compare Stocks -->
+    <dialog id="compare-dialog">
+        <div class="dialog-header">
+            <h3>주식 상세 비교</h3>
+            <button class="dialog-close" id="btn-compare-close">&times;</button>
+        </div>
+        <div class="compare-container">
+            <div class="compare-selector">
+                <div class="form-group">
+                    <label>비교 대상 주식 1</label>
+                    <input type="text" class="form-input" id="compare-ticker-1" placeholder="AAPL" readonly>
+                </div>
+                <div class="form-group">
+                    <label>비교 대상 주식 2 검색</label>
+                    <div style="position:relative;">
+                        <input type="text" class="form-input" id="compare-ticker-2" placeholder="종목명 또는 티커 검색..." autocomplete="off">
+                        <div class="search-results" id="compare-search-results"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="compare-chart" style="height: 300px; width: 100%; display: none;"></div>
+
+            <table class="compare-table" id="compare-data-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>지표</th>
+                        <th id="compare-name-1">주식 1</th>
+                        <th id="compare-name-2">주식 2</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>시가총액</td>
+                        <td id="comp-cap-1">-</td>
+                        <td id="comp-cap-2">-</td>
+                    </tr>
+                    <tr>
+                        <td>PER</td>
+                        <td id="comp-pe-1">-</td>
+                        <td id="comp-pe-2">-</td>
+                    </tr>
+                    <tr>
+                        <td>PBR</td>
+                        <td id="comp-pb-1">-</td>
+                        <td id="comp-pb-2">-</td>
+                    </tr>
+                    <tr>
+                        <td>배당수익률</td>
+                        <td id="comp-div-1">-</td>
+                        <td id="comp-div-2">-</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div id="compare-placeholder" style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                비교할 두 번째 주식을 입력해 주세요.
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Dialog: Add to Portfolio -->
+    <dialog id="portfolio-dialog">
+        <div class="dialog-header">
+            <h3>포트폴리오 자산 추가</h3>
+            <button class="dialog-close" id="btn-portfolio-close">&times;</button>
+        </div>
+        <form id="portfolio-form" method="dialog">
+            <div class="form-group">
+                <label for="port-ticker">주식 티커 (예: AAPL, 005930.KS)</label>
+                <input type="text" id="port-ticker" class="form-input" required placeholder="AAPL 또는 005930.KS" readonly>
+            </div>
+            <div class="form-group">
+                <label for="port-price">평균 매수가</label>
+                <input type="number" id="port-price" step="any" class="form-input" required placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label for="port-qty">보유 수량</label>
+                <input type="number" id="port-qty" step="any" class="form-input" required placeholder="0">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+                <button type="button" class="btn-primary" style="background: rgba(255,255,255,0.05); color: var(--text-primary);" id="btn-port-cancel">취소</button>
+                <button type="submit" class="btn-primary">추가하기</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="app.js"></script>
+</body>
+</html>
