@@ -10,7 +10,7 @@ import urllib.request
 import urllib.parse
 import json
 import time
-from typing import List, Optional
+from typing import List, Optional, Any
 import os
 import math
 
@@ -545,22 +545,24 @@ def get_stock_history(ticker: str, period: str = "1y", interval: str = "1d"):
 
         history_list = []
         for index, row in df.iterrows():
-            date_str = index.strftime("%Y-%m-%d")
+            idx_any: Any = index
+            row_any: Any = row
+            date_str = idx_any.strftime("%Y-%m-%d")
             history_list.append({
                 "time": date_str,
-                "open": float(row["Open"]),
-                "high": float(row["High"]),
-                "low": float(row["Low"]),
-                "close": float(row["Close"]),
-                "volume": int(row["Volume"]) if row["Volume"] is not None else 0,
-                "ma5": float(row["MA5"]) if row["MA5"] is not None else None,
-                "ma20": float(row["MA20"]) if row["MA20"] is not None else None,
-                "ma60": float(row["MA60"]) if row["MA60"] is not None else None,
-                "ma120": float(row["MA120"]) if row["MA120"] is not None else None,
-                "rsi": float(row["RSI"]) if row["RSI"] is not None else None,
-                "macd": float(row["MACD"]) if row["MACD"] is not None else None,
-                "macdSignal": float(row["MACD_Signal"]) if row["MACD_Signal"] is not None else None,
-                "macdHist": float(row["MACD_Hist"]) if row["MACD_Hist"] is not None else None,
+                "open": float(row_any["Open"]),
+                "high": float(row_any["High"]),
+                "low": float(row_any["Low"]),
+                "close": float(row_any["Close"]),
+                "volume": int(row_any["Volume"]) if row_any["Volume"] is not None else 0,
+                "ma5": float(row_any["MA5"]) if row_any["MA5"] is not None else None,
+                "ma20": float(row_any["MA20"]) if row_any["MA20"] is not None else None,
+                "ma60": float(row_any["MA60"]) if row_any["MA60"] is not None else None,
+                "ma120": float(row_any["MA120"]) if row_any["MA120"] is not None else None,
+                "rsi": float(row_any["RSI"]) if row_any["RSI"] is not None else None,
+                "macd": float(row_any["MACD"]) if row_any["MACD"] is not None else None,
+                "macdSignal": float(row_any["MACD_Signal"]) if row_any["MACD_Signal"] is not None else None,
+                "macdHist": float(row_any["MACD_Hist"]) if row_any["MACD_Hist"] is not None else None,
             })
 
         return history_list
@@ -589,10 +591,12 @@ def compare_stocks(tickers: str = Query(...,
 
             comparison_data = []
             for index, row in hist.iterrows():
-                close = float(row["Close"])
+                idx_any: Any = index
+                row_any: Any = row
+                close = float(row_any["Close"])
                 pct_return = ((close - initial_price) / initial_price) * 100
                 comparison_data.append({
-                    "time": index.strftime("%Y-%m-%d"),
+                    "time": idx_any.strftime("%Y-%m-%d"),
                     "value": round(pct_return, 2),
                     "price": round(close, 2)
                 })
