@@ -19,7 +19,7 @@ source venv/bin/activate
 
 # 2. 패키지 설치
 echo "종속성 설치 확인 중..."
-pip install -r backend/requirements.txt
+python3 -m pip install -r backend/requirements.txt
 
 # 3. FastAPI 백엔드 서버 구동
 echo "[3/3] FastAPI 백엔드 서버 구동 중..."
