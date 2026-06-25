@@ -75,6 +75,7 @@ header {
   align-items: center;
   border-bottom: 1px solid var(--border-color);
   background: rgba(11, 15, 25, 0.8);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
@@ -87,6 +88,7 @@ header {
   gap: 0.6rem;
   font-size: 1.25rem;
   text-decoration: none;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -116,6 +118,7 @@ header {
   font-weight: 750;
   background: linear-gradient(135deg, #6366f1 30%, #00f2fe 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -328,8 +331,8 @@ main {
   border-radius: 20px;
   padding: 1.5rem;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 /* Active Stock Header Info */
@@ -593,6 +596,7 @@ dialog {
 
 dialog::backdrop {
   background: rgba(11, 15, 25, 0.7);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 
@@ -759,6 +763,7 @@ dialog:focus {
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1051,3 +1056,79 @@ footer {
 .flash-down-anim {
   animation: flash-down 0.8s ease-out;
 }
+
+/* Custom Helper Styles for HTML Cleanliness */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+#btn-watchlist-toggle {
+  display: inline-flex;
+  border-radius: 8px;
+  width: auto;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  gap: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+#metric-52week {
+  font-size: 0.95rem;
+}
+
+.stock-summary-wrapper {
+  margin-top: 1.5rem;
+}
+
+.stock-summary-wrapper h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+#active-summary {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.portfolio-total-right {
+  text-align: right;
+}
+
+.relative-container {
+  position: relative;
+}
+
+#compare-chart {
+  height: 300px;
+  width: 100%;
+  display: none;
+}
+
+#compare-data-table {
+  display: none;
+}
+
+#compare-placeholder {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.dialog-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+#btn-port-cancel {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+

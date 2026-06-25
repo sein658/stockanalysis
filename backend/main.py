@@ -100,7 +100,7 @@ TICKER_NAMES = {
 # Cache for stock details to prevent slow yfinance scraping overhead
 # Key: Ticker -> Value: {"data": InfoDict, "timestamp": unix_time}
 info_cache = {}
-market_cache = {"data": None, "timestamp": 0}
+market_cache: dict[str, Any] = {"data": None, "timestamp": 0}
 
 
 def search_stock_internal(q: str):
